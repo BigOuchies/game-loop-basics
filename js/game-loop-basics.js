@@ -1,8 +1,11 @@
+//Driver code
+
+import { CarController } from './CarController.js';
 import { GameLoop } from './GameLoop.js';
 
 (function ($) {
     $(function() {
-        let debugLogs = true;
+        let debugLogs = false;
         let gameLoop = new GameLoop(onRun, onStart, onStop, onPause, onResume, 60);
         let car = $('#car');
 
@@ -15,13 +18,16 @@ import { GameLoop } from './GameLoop.js';
         let documentHasFocus = true;
         let userPaused = false;
 
+        let rightKeyActive = false;
+        let leftKeyActive = false;
+
         gameLoop.logger = (type, message) => {
             logType(type, message);
         };
 
         gameLoop.initialize(() => {
             $(window).on('keydown', function (event) {
-                if (event.keyCode === 32) { // space
+                if (event.key == "Right" || event.key == "ArrowRight") { // space
                     event.preventDefault();
 
                     if (gameLoop.loopState === GameLoop.LoopState.STOPPED) {
@@ -35,21 +41,50 @@ import { GameLoop } from './GameLoop.js';
                         userPaused = true;
                         pause();
                     }
+                    rightKeyActive = true;
+                }
+                if (event.key == "Left" || event.key == "ArrowLeft") { // space
+                    event.preventDefault();
+
+                    if (gameLoop.loopState === GameLoop.LoopState.STOPPED) {
+                        gameLoop.start();
+                    }
+                    else if (gameLoop.loopState === GameLoop.LoopState.PAUSED) {
+                        userPaused = false;
+                        gameLoop.resume();
+                    }
+                    else if (gameLoop.loopState === GameLoop.LoopState.RUNNING) {
+                        userPaused = true;
+                        pause();
+                    }
+                    leftKeyActive = true;
+                }
+            });
+            $(window).on('keyup', function (event) {
+                if (event.key == "Right" || event.key == "ArrowRight") { // space
+                    event.preventDefault();
+
+                    rightKeyActive = false;
+                }
+                if (event.key == "Left" || event.key == "ArrowLeft") { // space
+                    event.preventDefault();
+
+                    leftKeyActive = false;
                 }
             });
         });
 
         function pause() {
-            gameLoop.pause(() => {
+           /* gameLoop.pause(() => {
                 if (!userPaused && document.hasFocus()) {
                     documentHasFocus = true;
                     gameLoop.resume();
                 }
-            }, 600);
+            }, 600);*/
         }
 
-        function onRun (delay) {
-            if (!document.hasFocus()) {
+        function onRun (delayMilli, delaySeconds) {
+           /* if (!document.hasFocus()) {
                 if (documentHasFocus) {
                     pause();
                 }
@@ -57,17 +92,25 @@ import { GameLoop } from './GameLoop.js';
                 documentHasFocus = false;
                 return;
             }
+*/
+            let moveDistance = (carSpeedPixels * delaySeconds);
+            let left = car.position().left;
+            if (leftKeyActive) {
+                left -= moveDistance;
+            }
+            else if (rightKeyActive) {
+                left += moveDistance;
+            }
 
-            let moveDistance = (carSpeedPixels * delay);
-            let newLeft = (car.position().left + moveDistance);
+            log(GameLoop.LogType.DEBUG, 'moving car', moveDistance + ' pixels to ' + left);
 
-            log(GameLoop.LogType.DEBUG, 'moving car', moveDistance + ' pixels to ' + newLeft);
+            console.log("Left: " + left);
 
-            if (newLeft < screenWidth) {
-                car.css('left', newLeft);
+            if (left < screenWidth && left > 0) {
+                car.css('left', left);
             }
             else {
-                gameLoop.stop();
+                //gameLoop.stop();
             }
         }
 
@@ -90,8 +133,8 @@ import { GameLoop } from './GameLoop.js';
         }
 
         function onPause () {
-            if (gameLoop.loopState !== GameLoop.LoopState.PAUSED)
-                return;
+            //if (gameLoop.loopState !== GameLoop.LoopState.PAUSED)
+            //    return;
 
             log(GameLoop.LogType.INFO, 'Loop State', 'Paused');
         }
